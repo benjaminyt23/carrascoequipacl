@@ -27,7 +27,7 @@ app.innerHTML = `
     <section id="herramientas" class="herramientas"><label class="busqueda"><span>Buscar productos</span><input id="buscar" type="search" placeholder="Busca por producto, vehículo o año…"></label><div class="acciones"><button id="recargar" class="secundario">Actualizar</button>${modo === 'admin' ? `<button id="nuevo" class="primario" hidden>＋ Agregar producto</button><button id="salir" class="secundario" hidden>Cerrar sesión</button>` : ''}</div></section>
     <div class="resumen"><h2 id="lista-titulo">Nuestro catálogo</h2><span id="contador"></span></div>
     <section id="productos" class="grid" aria-label="Productos" aria-busy="false"></section>
-    <footer>Información obtenida desde Supabase · Precios en pesos chilenos</footer>
+    <footer>CARRASCO EQUIPAMIENTO @2026</footer>
   </main>
   ${modo === 'admin' ? `<dialog id="editor"><form id="producto-form"><div class="dialog-header"><div><span class="eyebrow">ADMINISTRACIÓN</span><h2 id="editor-titulo">Agregar producto</h2></div><button type="button" id="cerrar" class="secundario" aria-label="Cerrar formulario">✕</button></div><div class="form-grid">
     <label class="ancho">Nombre del producto<input name="nombre" maxlength="200" required placeholder="Ej. Antivuelco"></label>
