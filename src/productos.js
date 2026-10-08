@@ -3,17 +3,17 @@ export function normalizar(texto) {
   return String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-export function buscarProductos(productos, consulta) {
+export function buscarProductos(productos, consulta, incluirCodigo = false) {
   const palabras = normalizar(consulta).trim().split(/\s+/).filter(Boolean);
   return productos.filter(producto => {
-    const texto = normalizar([producto.nombre, producto.vehiculo, producto.ano, producto.descripcion].join(' '));
+    const texto = normalizar([producto.nombre, producto.vehiculo, producto.ano, producto.descripcion, incluirCodigo ? producto.codigo : ''].join(' '));
     return palabras.every(palabra => texto.includes(palabra));
   });
 }
 
 export function validarProducto(datos) {
   const producto = {};
-  for (const campo of ['nombre', 'vehiculo', 'ano', 'descripcion', 'instalacion', 'foto']) {
+  for (const campo of ['nombre', 'codigo', 'vehiculo', 'ano', 'descripcion', 'instalacion', 'foto']) {
     producto[campo] = String(datos[campo] ?? '').trim();
   }
   for (const campo of ['nombre', 'vehiculo', 'ano']) {
@@ -32,5 +32,6 @@ export function validarProducto(datos) {
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('La URL de fotografía debe comenzar con https:// o http://.');
   }
   producto.foto ||= null;
+  producto.codigo ||= null;
   return producto;
 }

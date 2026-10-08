@@ -15,6 +15,16 @@ test('L200 encuentra todos los compatibles, sin distinguir mayúsculas ni acento
 });
 
 const valido = { nombre: 'Antivuelco', vehiculo: 'Mitsubishi L200', ano: '2016–2024', precio: '250000', stock: '3', foto: '' };
+test('busca por código solamente cuando se solicita búsqueda interna', () => {
+  const filas = [{ ...valido, codigo: 'AV-L200-001' }, { ...valido, codigo: null }];
+  assert.equal(buscarProductos(filas, 'av-l200-001', true).length, 1);
+  assert.equal(buscarProductos(filas, 'av-l200-001').length, 0);
+  assert.equal(buscarProductos(filas, 'L200', true).length, 2);
+});
+test('código opcional conserva ceros iniciales y admite productos anteriores', () => {
+  assert.equal(validarProducto({ ...valido, codigo: ' 001-AV ' }).codigo, '001-AV');
+  assert.equal(validarProducto(valido).codigo, null);
+});
 test('convierte precio y stock, conserva compatibilidad y permite foto vacía', () => {
   const resultado = validarProducto(valido);
   assert.equal(resultado.precio, 250000);

@@ -5,6 +5,7 @@ begin;
 create table if not exists public.productos (
   id uuid primary key default gen_random_uuid(),
   nombre text not null check (length(trim(nombre)) > 0),
+  codigo text,
   vehiculo text not null check (length(trim(vehiculo)) > 0),
   ano text not null check (length(trim(ano)) > 0),
   precio numeric(12,0) not null check (precio >= 0),

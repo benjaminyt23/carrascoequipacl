@@ -24,6 +24,14 @@ Si ya existe una tabla `productos`, revisa que tenga las columnas y tipos del SQ
 
 ## 2. Ejecutar en tu computador
 
+### Código interno de productos
+
+Para una base ya configurada, ejecuta todo el archivo `supabase/agregar-codigo.sql` en **SQL Editor → New query → Run**, antes de publicar la nueva web. Añade `codigo` de tipo texto, opcional. Los productos existentes conservan sus datos y tienen código nulo hasta que lo completes en `/admin`. No se cambian las políticas RLS.
+
+En `/admin` puedes agregar o editar el **Código / SKU interno** y buscar por él. El código conserva ceros iniciales. No se muestra ni se utiliza como campo de búsqueda en el catálogo público; sus consultas tampoco solicitan esta columna. Esto es una regla de presentación, no una garantía de confidencialidad: se mantienen los permisos públicos actuales de la tabla.
+
+Regla para el futuro bot de WhatsApp: `codigo` es una referencia interna y no debe incluirse automáticamente en respuestas, fichas ni mensajes de productos. Solo comunicar el valor real de Supabase cuando el cliente pregunte explícitamente por el código o SKU. Si no está registrado, informar que no hay código registrado, sin inventarlo. El bot aún no está implementado.
+
 ### Fotografías en Supabase Storage
 
 Si ya configuraste las tablas y el usuario administrador, solo necesitas este paso adicional:
@@ -106,6 +114,7 @@ Agrega las variables en **Settings → Environment Variables** para Production y
 - `src/main.js`: catálogo, sesión de administración y operaciones CRUD en Supabase.
 - `src/style.css`: diseño adaptable a computador y celular.
 - `supabase/schema.sql`: tablas y permisos de acceso.
+- `supabase/agregar-codigo.sql`: añade el código interno sin modificar los productos existentes.
 - `supabase/storage.sql`: bucket público productos, límite de tamaño, formatos y permisos de subida.
 - `.env.example`: nombres de las variables que debes configurar.
 - `.gitignore`: evita subir variables locales y archivos generados.

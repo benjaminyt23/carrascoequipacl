@@ -31,6 +31,7 @@ app.innerHTML = `
   </main>
   ${modo === 'admin' ? `<dialog id="editor"><form id="producto-form"><div class="dialog-header"><div><span class="eyebrow">ADMINISTRACIÓN</span><h2 id="editor-titulo">Agregar producto</h2></div><button type="button" id="cerrar" class="secundario" aria-label="Cerrar formulario">✕</button></div><div class="form-grid">
     <label class="ancho">Nombre del producto<input name="nombre" maxlength="200" required placeholder="Ej. Antivuelco"></label>
+    <label class="ancho">Código / SKU interno (opcional)<input name="codigo" placeholder="Ej. AV-L200-001"><small>Referencia interna. No se muestra en el catálogo público.</small></label>
     <label>Vehículo compatible<input name="vehiculo" maxlength="300" required placeholder="Ej. Mitsubishi L200"></label>
     <label>Años compatibles<input name="ano" maxlength="200" required placeholder="Ej. 2016–2024"></label>
     <label>Precio (CLP)<input name="precio" type="number" min="0" max="999999999999" step="1" required></label>
@@ -61,6 +62,7 @@ function actualizarVista() {
     $('nuevo').hidden = !administrador;
     $('salir').hidden = !administrador;
   }
+  $('buscar').placeholder = admin && administrador ? 'Busca por código, producto, vehículo o año…' : 'Busca por producto, vehículo o año…';
   $('lista-titulo').textContent = admin && administrador ? 'Todos los productos' : 'Nuestro catálogo';
   renderProductos();
 }
@@ -71,12 +73,12 @@ function renderProductos() {
     $('productos').innerHTML = `<div class="vacio"><h3>${cargando ? 'Cargando productos…' : 'Catálogo pendiente de conexión'}</h3><p>${cargando ? 'Consultando Supabase.' : 'Los productos aparecerán cuando la conexión esté configurada y disponible.'}</p></div>`;
     return;
   }
-  const resultado = buscarProductos(productos, $('buscar').value);
+  const resultado = buscarProductos(productos, $('buscar').value, modo === 'admin' && administrador);
   $('contador').textContent = `${resultado.length} producto${resultado.length === 1 ? '' : 's'}`;
   $('productos').innerHTML = resultado.length ? resultado.map(producto => {
     let fotoValida = false;
     try { fotoValida = ['http:', 'https:'].includes(new URL(producto.foto).protocol); } catch { /* Sin imagen válida */ }
-    return `<article class="producto"><div class="foto">${fotoValida ? `<img src="${escapar(producto.foto)}" alt="${escapar(producto.nombre)}" loading="lazy" referrerpolicy="no-referrer">` : '<span class="sin-foto">CE<span>Sin fotografía</span></span>'}<span class="stock ${producto.stock > 0 ? '' : 'agotado'}">${producto.stock > 0 ? `${escapar(producto.stock)} disponibles` : 'Sin stock'}</span></div><div class="contenido"><span class="vehiculo">${escapar(producto.vehiculo)}</span><h3>${escapar(producto.nombre)}</h3><p class="anos">Años: ${escapar(producto.ano)}</p><p class="precio">${dinero.format(producto.precio)}</p><p class="descripcion">${escapar(producto.descripcion || 'Sin descripción registrada.')}</p><div class="instalacion"><strong>Instalación</strong><p>${escapar(producto.instalacion || 'Sin información registrada.')}</p></div>${modo === 'admin' && administrador ? `<div class="producto-acciones"><button class="secundario" data-editar="${escapar(producto.id)}">Editar</button><button class="eliminar" data-eliminar="${escapar(producto.id)}">Eliminar</button></div>` : ''}</div></article>`;
+    return `<article class="producto"><div class="foto">${fotoValida ? `<img src="${escapar(producto.foto)}" alt="${escapar(producto.nombre)}" loading="lazy" referrerpolicy="no-referrer">` : '<span class="sin-foto">CE<span>Sin fotografía</span></span>'}<span class="stock ${producto.stock > 0 ? '' : 'agotado'}">${producto.stock > 0 ? `${escapar(producto.stock)} disponibles` : 'Sin stock'}</span></div><div class="contenido"><span class="vehiculo">${escapar(producto.vehiculo)}</span><h3>${escapar(producto.nombre)}</h3><p class="anos">Años: ${escapar(producto.ano)}</p><p class="precio">${dinero.format(producto.precio)}</p><p class="descripcion">${escapar(producto.descripcion || 'Sin descripción registrada.')}</p><div class="instalacion"><strong>Instalación</strong><p>${escapar(producto.instalacion || 'Sin información registrada.')}</p></div>${modo === 'admin' && administrador ? `<p class="anos">Código / SKU: ${escapar(producto.codigo || 'Sin código')}</p><div class="producto-acciones"><button class="secundario" data-editar="${escapar(producto.id)}">Editar</button><button class="eliminar" data-eliminar="${escapar(producto.id)}">Eliminar</button></div>` : ''}</div></article>`;
   }).join('') : `<div class="vacio"><h3>${productos.length ? 'No encontramos coincidencias' : 'Tu catálogo está listo para comenzar'}</h3><p>${productos.length ? 'Prueba con un vehículo como L200 o con el nombre del accesorio.' : 'Todavía no hay productos registrados en Carrasco Equipamiento.'}</p></div>`;
   $('productos').querySelectorAll('img').forEach(img => img.addEventListener('error', () => {
     img.replaceWith(Object.assign(document.createElement('span'), { className: 'sin-foto', textContent: 'Fotografía no disponible' }));
@@ -92,7 +94,8 @@ async function cargarProductos() {
     const filas = [];
     const tamano = 500;
     for (let desde = 0; ; desde += tamano) {
-      const { data, error } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).order('id').range(desde, desde + tamano - 1);
+      const columnas = modo === 'admin' && administrador ? '*' : 'id,nombre,vehiculo,ano,precio,descripcion,instalacion,stock,foto,created_at';
+      const { data, error } = await supabase.from('productos').select(columnas).order('created_at', { ascending: false }).order('id').range(desde, desde + tamano - 1);
       if (error) throw error;
       filas.push(...data);
       if (data.length < tamano) break;
@@ -127,7 +130,7 @@ function abrirEditor(producto = null) {
   if (!administrador || subiendoFoto || guardando) return;
   editando = producto?.id ?? null;
   $('producto-form').reset();
-  for (const campo of ['nombre', 'vehiculo', 'ano', 'precio', 'stock', 'descripcion', 'instalacion', 'foto']) {
+  for (const campo of ['nombre', 'codigo', 'vehiculo', 'ano', 'precio', 'stock', 'descripcion', 'instalacion', 'foto']) {
     $('producto-form').elements[campo].value = producto?.[campo] ?? '';
   }
   $('editor-titulo').textContent = producto ? 'Editar producto' : 'Agregar producto';
