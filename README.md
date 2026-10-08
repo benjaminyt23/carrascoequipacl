@@ -24,6 +24,24 @@ Si ya existe una tabla `productos`, revisa que tenga las columnas y tipos del SQ
 
 ## 2. Ejecutar en tu computador
 
+### Fotografías en Supabase Storage
+
+Si ya configuraste las tablas y el usuario administrador, solo necesitas este paso adicional:
+
+1. Abre **SQL Editor → New query** en el mismo proyecto Supabase.
+2. Copia **todo** el contenido de `supabase/storage.sql` y pulsa **Run**. No necesitas volver a ejecutar `schema.sql` ni cambiar sus políticas.
+3. Comprueba en **Storage** que exista el bucket **productos**, marcado como **Public**, con límite de **5 MB (5242880 bytes)** y tipos `image/jpeg`, `image/png`, `image/webp`. El límite global de Storage debe permitir al menos 5 MB.
+4. Mantén tu usuario autorizado en `public.administradores`. Las nuevas políticas de Storage comprueban esta tabla; tener sesión por sí solo no permite subir imágenes.
+5. Vuelve a desplegar la web en Vercel. Usa las mismas dos variables de entorno; no hay claves adicionales.
+
+En `/admin`, al crear o editar un producto, pulsa **Subir foto** y elige una imagen del computador o celular. Se valida tamaño, extensión, MIME y cabecera. La imagen se sube inmediatamente a Supabase, aparece una vista previa y se completa la URL. Pulsa **Guardar en Supabase** para guardar esa URL en `productos.foto`. El catálogo público utiliza esta misma columna y mostrará la imagen sin iniciar sesión. También puedes seguir pegando URLs externas.
+
+Si la subida falla, se conserva la URL anterior y se muestra un error. Si falla el guardado del producto, la URL subida permanece en el formulario para reintentarlo. Cancelar después de una subida deja el archivo en Storage, pero no cambia el producto. Reemplazar una foto o eliminar un producto no borra archivos de Storage: podrían estar compartidos. Puedes revisar y eliminar fotos que ya no se usan desde el panel de Supabase; no borres imágenes usadas por otros productos.
+
+Las imágenes no se copian al proyecto ni a GitHub. El bucket público sirve las imágenes por URL, pero la escritura sigue restringida mediante RLS. El SQL añade una política restrictiva para este bucket para que otras políticas permisivas no habiliten escritura a usuarios no administradores; no modifica las políticas de `productos` o `administradores` ni el acceso a otros buckets. No otorga nuevos permisos de sobrescritura ni borrado.
+
+Prueba una foto de cada formato, una mayor de 5 MB y un formato no admitido. Guarda, recarga y verifica `productos.foto` y el catálogo sin sesión. Con un usuario que no figure en `administradores`, no debe permitirse subir una foto.
+
 Necesitas Node.js 22.12 o posterior con npm (Node 24 también sirve).
 
 ```sh
@@ -84,12 +102,15 @@ Agrega las variables en **Settings → Environment Variables** para Production y
 - `vercel.json`: sirve la aplicación cuando se entra directamente a `/admin`.
 - `src/supabase.js`: crea la conexión usando variables de entorno.
 - `src/productos.js`: búsqueda y validación del formulario.
+- `src/fotos.js`: validación y subida de fotografías a Supabase Storage.
 - `src/main.js`: catálogo, sesión de administración y operaciones CRUD en Supabase.
 - `src/style.css`: diseño adaptable a computador y celular.
 - `supabase/schema.sql`: tablas y permisos de acceso.
+- `supabase/storage.sql`: bucket público productos, límite de tamaño, formatos y permisos de subida.
 - `.env.example`: nombres de las variables que debes configurar.
 - `.gitignore`: evita subir variables locales y archivos generados.
 - `tests/productos.test.js`: comprobaciones de búsqueda y datos inválidos.
+- `tests/fotos.test.js`: validación de imágenes y comprobaciones de subida con un cliente simulado.
 - `README.md`: esta guía paso a paso.
 
 La carpeta inicial solo contenía `.git`: todos estos archivos son nuevos; no se modificaron funcionalidades anteriores.

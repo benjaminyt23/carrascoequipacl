@@ -1,6 +1,7 @@
 import './style.css';
 import { supabase } from './supabase.js';
 import { buscarProductos, validarProducto } from './productos.js';
+import { subirFoto } from './fotos.js';
 
 const app = document.querySelector('#app');
 const dinero = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -12,6 +13,7 @@ let cargaCorrecta = false;
 let cargando = false;
 let versionCarga = 0;
 let guardando = false;
+let subiendoFoto = false;
 let editando = null;
 const escapar = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter]);
 
@@ -35,7 +37,8 @@ app.innerHTML = `
     <label>Stock (unidades)<input name="stock" type="number" min="0" max="2147483647" step="1" required></label>
     <label class="ancho">Descripción<textarea name="descripcion" rows="3" maxlength="5000" placeholder="Características del producto"></textarea></label>
     <label class="ancho">Instalación<textarea name="instalacion" rows="2" maxlength="3000" placeholder="Método de instalación y si está incluida en el precio"></textarea></label>
-    <label class="ancho">URL de fotografía (opcional)<input name="foto" type="url" placeholder="https://…"><small>Enlace directo a una imagen pública.</small></label>
+    <div class="ancho foto-controles"><input id="archivo-foto" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden><button id="subir-foto" class="secundario" type="button">Subir foto</button><small>JPG, JPEG, PNG o WEBP · Máximo 5 MB.</small><p id="estado-foto" role="status" aria-live="polite"></p><img id="preview-foto" class="preview-foto" alt="Vista previa de la fotografía del producto" hidden></div>
+    <label class="ancho">URL de fotografía (opcional)<input name="foto" type="url" placeholder="https://…"><small>Se completa al subir una foto. También puedes pegar una URL pública. Guarda el producto para aplicar el cambio.</small></label>
   </div><p id="error-form" class="error" role="alert" hidden></p><div class="dialog-footer"><button type="button" id="cancelar" class="secundario">Cancelar</button><button id="guardar" class="primario" type="submit">Guardar en Supabase</button></div></form></dialog>` : ''}`;
 
 const $ = id => document.getElementById(id);
@@ -121,7 +124,7 @@ async function revisarAdministrador() {
   actualizarVista();
 }
 function abrirEditor(producto = null) {
-  if (!administrador) return;
+  if (!administrador || subiendoFoto || guardando) return;
   editando = producto?.id ?? null;
   $('producto-form').reset();
   for (const campo of ['nombre', 'vehiculo', 'ano', 'precio', 'stock', 'descripcion', 'instalacion', 'foto']) {
@@ -129,15 +132,58 @@ function abrirEditor(producto = null) {
   }
   $('editor-titulo').textContent = producto ? 'Editar producto' : 'Agregar producto';
   $('error-form').hidden = true;
+  $('estado-foto').textContent = '';
+  actualizarPreview();
   $('editor').showModal();
+}
+function actualizarPreview() {
+  const imagen = $('preview-foto');
+  const url = $('producto-form').elements.foto.value.trim();
+  imagen.hidden = true;
+  imagen.removeAttribute('src');
+  try {
+    if (!['http:', 'https:'].includes(new URL(url).protocol)) return;
+    imagen.src = url;
+    imagen.hidden = false;
+  } catch { /* Campo vacío o URL incompleta */ }
 }
 $('catalogo').onclick = () => { window.location.href = '/'; };
 $('buscar').oninput = renderProductos;
 $('recargar').onclick = () => { avisar(''); cargarProductos(); };
 if (modo === 'admin') {
+$('subir-foto').onclick = () => { if (administrador && !guardando && !subiendoFoto) $('archivo-foto').click(); };
+$('producto-form').elements.foto.addEventListener('input', actualizarPreview);
+$('preview-foto').onerror = () => {
+  $('preview-foto').hidden = true;
+  $('estado-foto').textContent = 'No se pudo mostrar la imagen. Revisa su URL y que el bucket sea público.';
+};
+$('archivo-foto').onchange = async event => {
+  const archivo = event.target.files[0];
+  if (!archivo || subiendoFoto || guardando || !administrador) return;
+  subiendoFoto = true;
+  for (const id of ['subir-foto', 'guardar', 'cerrar', 'cancelar', 'salir']) $(id).disabled = true;
+  $('producto-form').elements.foto.disabled = true;
+  $('error-form').hidden = true;
+  $('estado-foto').textContent = 'Subiendo fotografía a Supabase…';
+  try {
+    const url = await subirFoto(supabase, archivo);
+    $('producto-form').elements.foto.value = url;
+    actualizarPreview();
+    $('estado-foto').textContent = 'Foto subida. Pulsa “Guardar en Supabase” para asociarla al producto.';
+  } catch (error) {
+    $('estado-foto').textContent = '';
+    $('error-form').textContent = explicarError(error);
+    $('error-form').hidden = false;
+  } finally {
+    subiendoFoto = false;
+    event.target.value = '';
+    for (const id of ['subir-foto', 'guardar', 'cerrar', 'cancelar', 'salir']) $(id).disabled = false;
+    $('producto-form').elements.foto.disabled = false;
+  }
+};
 $('nuevo').onclick = () => abrirEditor();
-for (const id of ['cerrar', 'cancelar']) $(id).onclick = () => { if (!guardando) $('editor').close(); };
-$('editor').addEventListener('cancel', event => { if (guardando) event.preventDefault(); });
+for (const id of ['cerrar', 'cancelar']) $(id).onclick = () => { if (!guardando && !subiendoFoto) $('editor').close(); };
+$('editor').addEventListener('cancel', event => { if (guardando || subiendoFoto) event.preventDefault(); });
 $('login-form').onsubmit = async event => {
   event.preventDefault();
   const boton = event.target.querySelector('button');
@@ -160,9 +206,10 @@ $('salir').onclick = async () => {
 };
 $('producto-form').onsubmit = async event => {
   event.preventDefault();
-  if (guardando || !administrador) return;
+  if (guardando || subiendoFoto || !administrador) return;
   guardando = true;
   $('guardar').disabled = true;
+  $('subir-foto').disabled = true;
   $('guardar').textContent = 'Guardando…';
   $('error-form').hidden = true;
   try {
@@ -180,6 +227,7 @@ $('producto-form').onsubmit = async event => {
   } finally {
     guardando = false;
     $('guardar').disabled = false;
+    $('subir-foto').disabled = false;
     $('guardar').textContent = 'Guardar en Supabase';
   }
 };
