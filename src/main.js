@@ -6,7 +6,8 @@ const app = document.querySelector('#app');
 const dinero = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 let productos = [];
 let administrador = false;
-let modo = 'catalogo';
+// La ruta decide la vista; no hay enlaces públicos hacia administración.
+const modo = /^\/admin\/?$/.test(window.location.pathname) ? 'admin' : 'catalogo';
 let cargaCorrecta = false;
 let cargando = false;
 let versionCarga = 0;
@@ -15,18 +16,18 @@ let editando = null;
 const escapar = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter]);
 
 app.innerHTML = `
-  <header><a class="marca" href="/" aria-label="Carrasco Equipa, inicio"><span class="simbolo">CE</span><span>CARRASCO<span class="marca-sub">EQUIPA · ACCESORIOS</span></span></a><nav aria-label="Principal"><button id="catalogo" class="nav activo">Catálogo</button><button id="administracion" class="nav">Administración</button></nav></header>
+  <header><a class="marca" href="/" aria-label="Carrasco Equipa, inicio"><span class="simbolo">CE</span><span>CARRASCO<span class="marca-sub">EQUIPA · ACCESORIOS</span></span></a><nav aria-label="Principal"><button id="catalogo" class="nav activo">Catálogo</button></nav></header>
   <main>
     <section class="intro"><div><span class="eyebrow">EQUIPA TU PRÓXIMO CAMINO</span><h1 id="titulo">Productos para tu vehículo.</h1><p id="subtitulo">Encuentra accesorios, compatibilidad y detalles de instalación en un solo lugar.</p></div><span class="etiqueta">Catálogo conectado a Supabase</span></section>
     <div id="configuracion" class="aviso" hidden>Falta configurar Supabase. Copia <strong>.env.example</strong> como <strong>.env</strong>, completa las dos variables y reinicia el servidor. La guía está en README.md.</div>
     <div id="mensaje" role="status" aria-live="polite" hidden></div>
-    <section id="login" class="panel login" hidden><span class="eyebrow">ACCESO DE ADMINISTRACIÓN</span><h2>Ingresa a tu panel</h2><p>Usa la cuenta que configuraste en Supabase.</p><form id="login-form"><label>Correo<input name="email" type="email" autocomplete="username" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label><button class="primario" type="submit">Iniciar sesión</button></form></section>
-    <section id="herramientas" class="herramientas"><label class="busqueda"><span>Buscar productos</span><input id="buscar" type="search" placeholder="Busca por producto, vehículo o año…"></label><div class="acciones"><button id="recargar" class="secundario">Actualizar</button><button id="nuevo" class="primario" hidden>＋ Agregar producto</button><button id="salir" class="secundario" hidden>Cerrar sesión</button></div></section>
+    ${modo === 'admin' ? `<section id="login" class="panel login" hidden><span class="eyebrow">ACCESO DE ADMINISTRACIÓN</span><h2>Ingresa a tu panel</h2><p>Usa la cuenta que configuraste en Supabase.</p><form id="login-form"><label>Correo<input name="email" type="email" autocomplete="username" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label><button class="primario" type="submit">Iniciar sesión</button></form></section>` : ''}
+    <section id="herramientas" class="herramientas"><label class="busqueda"><span>Buscar productos</span><input id="buscar" type="search" placeholder="Busca por producto, vehículo o año…"></label><div class="acciones"><button id="recargar" class="secundario">Actualizar</button>${modo === 'admin' ? `<button id="nuevo" class="primario" hidden>＋ Agregar producto</button><button id="salir" class="secundario" hidden>Cerrar sesión</button>` : ''}</div></section>
     <div class="resumen"><h2 id="lista-titulo">Nuestro catálogo</h2><span id="contador"></span></div>
     <section id="productos" class="grid" aria-label="Productos" aria-busy="false"></section>
     <footer>Información obtenida desde Supabase · Precios en pesos chilenos</footer>
   </main>
-  <dialog id="editor"><form id="producto-form"><div class="dialog-header"><div><span class="eyebrow">ADMINISTRACIÓN</span><h2 id="editor-titulo">Agregar producto</h2></div><button type="button" id="cerrar" class="secundario" aria-label="Cerrar formulario">✕</button></div><div class="form-grid">
+  ${modo === 'admin' ? `<dialog id="editor"><form id="producto-form"><div class="dialog-header"><div><span class="eyebrow">ADMINISTRACIÓN</span><h2 id="editor-titulo">Agregar producto</h2></div><button type="button" id="cerrar" class="secundario" aria-label="Cerrar formulario">✕</button></div><div class="form-grid">
     <label class="ancho">Nombre del producto<input name="nombre" maxlength="200" required placeholder="Ej. Antivuelco"></label>
     <label>Vehículo compatible<input name="vehiculo" maxlength="300" required placeholder="Ej. Mitsubishi L200"></label>
     <label>Años compatibles<input name="ano" maxlength="200" required placeholder="Ej. 2016–2024"></label>
@@ -35,7 +36,7 @@ app.innerHTML = `
     <label class="ancho">Descripción<textarea name="descripcion" rows="3" maxlength="5000" placeholder="Características del producto"></textarea></label>
     <label class="ancho">Instalación<textarea name="instalacion" rows="2" maxlength="3000" placeholder="Método de instalación y si está incluida en el precio"></textarea></label>
     <label class="ancho">URL de fotografía (opcional)<input name="foto" type="url" placeholder="https://…"><small>Enlace directo a una imagen pública.</small></label>
-  </div><p id="error-form" class="error" role="alert" hidden></p><div class="dialog-footer"><button type="button" id="cancelar" class="secundario">Cancelar</button><button id="guardar" class="primario" type="submit">Guardar en Supabase</button></div></form></dialog>`;
+  </div><p id="error-form" class="error" role="alert" hidden></p><div class="dialog-footer"><button type="button" id="cancelar" class="secundario">Cancelar</button><button id="guardar" class="primario" type="submit">Guardar en Supabase</button></div></form></dialog>` : ''}`;
 
 const $ = id => document.getElementById(id);
 function avisar(texto, error = false) {
@@ -52,10 +53,11 @@ function actualizarVista() {
   $('titulo').textContent = admin ? 'Tu catálogo, bajo control.' : 'Productos para tu vehículo.';
   $('subtitulo').textContent = admin ? 'Administra productos, precios y stock. Cada cambio se guarda en Supabase.' : 'Encuentra accesorios, compatibilidad y detalles de instalación en un solo lugar.';
   $('catalogo').classList.toggle('activo', !admin);
-  $('administracion').classList.toggle('activo', admin);
-  $('login').hidden = !admin || administrador || !supabase;
-  $('nuevo').hidden = !admin || !administrador;
-  $('salir').hidden = !admin || !administrador;
+  if (admin) {
+    $('login').hidden = administrador || !supabase;
+    $('nuevo').hidden = !administrador;
+    $('salir').hidden = !administrador;
+  }
   $('lista-titulo').textContent = admin && administrador ? 'Todos los productos' : 'Nuestro catálogo';
   renderProductos();
 }
@@ -129,10 +131,10 @@ function abrirEditor(producto = null) {
   $('error-form').hidden = true;
   $('editor').showModal();
 }
-$('catalogo').onclick = () => { modo = 'catalogo'; actualizarVista(); };
-$('administracion').onclick = () => { modo = 'admin'; actualizarVista(); };
+$('catalogo').onclick = () => { window.location.href = '/'; };
 $('buscar').oninput = renderProductos;
 $('recargar').onclick = () => { avisar(''); cargarProductos(); };
+if (modo === 'admin') {
 $('nuevo').onclick = () => abrirEditor();
 for (const id of ['cerrar', 'cancelar']) $(id).onclick = () => { if (!guardando) $('editor').close(); };
 $('editor').addEventListener('cancel', event => { if (guardando) event.preventDefault(); });
@@ -181,6 +183,7 @@ $('producto-form').onsubmit = async event => {
     $('guardar').textContent = 'Guardar en Supabase';
   }
 };
+}
 $('productos').onclick = async event => {
   if (!administrador) return;
   const botonEditar = event.target.closest('[data-editar]');
@@ -208,6 +211,7 @@ if (!supabase) {
   supabase.auth.onAuthStateChange((evento) => {
     if (evento === 'SIGNED_OUT') { administrador = false; actualizarVista(); }
   });
-  await revisarAdministrador();
+  if (modo === 'admin') await revisarAdministrador();
+  actualizarVista();
   await cargarProductos();
 }

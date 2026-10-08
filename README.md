@@ -46,7 +46,7 @@ Abre la dirección que indique Vite. Reinicia el servidor después de cambiar `.
 ## 3. Cómo probar
 
 1. Sin iniciar sesión, abre el catálogo. En una base nueva aparecerá vacío.
-2. Ve a **Administración** e inicia sesión con tu usuario autorizado.
+2. Entra manualmente a `/admin` (por ejemplo, `http://localhost:5173/admin`) e inicia sesión con tu usuario autorizado. No hay enlaces de administración en el catálogo público.
 3. Agrega un producto real: nombre, vehículo (por ejemplo Mitsubishi L200), años, precio en CLP, stock, descripción, instalación y URL de foto opcional. Indica en instalación si el precio incluye ese servicio.
 4. Comprueba la nueva fila en **Table Editor → productos** de Supabase.
 5. Busca `L200`: deben aparecer todos los productos cuyo vehículo u otros campos coincidan. La búsqueda ignora mayúsculas y acentos y combina todas las palabras escritas.
@@ -73,7 +73,7 @@ Importa el repositorio como proyecto de **Vite**. Usa:
 - Install command: `npm install`
 - Variables: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, con los mismos valores de `.env`.
 
-Agrega las variables en **Settings → Environment Variables** para Production y para Preview si lo usarás. Vuelve a desplegar después de cambiarlas. No se requieren claves de WhatsApp, OpenAI ni service_role. La app funciona en la raíz sin rutas adicionales.
+Agrega las variables en **Settings → Environment Variables** para Production y para Preview si lo usarás. Vuelve a desplegar después de cambiarlas. No se requieren claves de WhatsApp, OpenAI ni service_role. La raíz `/` muestra únicamente el catálogo público. La administración está en `/admin`; `vercel.json` permite abrir y recargar esa ruta directamente.
 
 ## Archivos y su propósito
 
@@ -81,6 +81,7 @@ Agrega las variables en **Settings → Environment Variables** para Production y
 - `pnpm-lock.yaml`: versiones exactas de las dependencias instaladas con pnpm en este entorno. Puedes usar pnpm o npm; evita mantener dos archivos de bloqueo a la vez.
 - `pnpm-workspace.yaml`: autoriza el script de instalación de esbuild, que Vite necesita para compilar al usar pnpm.
 - `index.html`: página base en español.
+- `vercel.json`: sirve la aplicación cuando se entra directamente a `/admin`.
 - `src/supabase.js`: crea la conexión usando variables de entorno.
 - `src/productos.js`: búsqueda y validación del formulario.
 - `src/main.js`: catálogo, sesión de administración y operaciones CRUD en Supabase.
