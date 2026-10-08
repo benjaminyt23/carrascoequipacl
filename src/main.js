@@ -20,7 +20,7 @@ const escapar = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({ 
 app.innerHTML = `
   <header><a class="marca" href="/" aria-label="Carrasco Equipa, inicio"><span class="simbolo">CE</span><span>CARRASCO<span class="marca-sub">EQUIPA · ACCESORIOS</span></span></a><nav aria-label="Principal"><button id="catalogo" class="nav activo">Catálogo</button></nav></header>
   <main>
-    <section class="intro"><div><span class="eyebrow">EQUIPA TU PRÓXIMO CAMINO</span><h1 id="titulo">Productos para tu vehículo.</h1><p id="subtitulo">Encuentra accesorios, compatibilidad y detalles de instalación en un solo lugar.</p></div><span class="etiqueta">Catálogo conectado a Supabase</span></section>
+    <section class="intro"><div><span class="eyebrow">EQUIPA TU PRÓXIMO CAMINO</span><h1 id="titulo">Productos para tu vehículo.</h1><p id="subtitulo">Encuentra accesorios, compatibilidad y detalles de instalación en un solo lugar.</p></div></section>
     <div id="configuracion" class="aviso" hidden>Falta configurar Supabase. Copia <strong>.env.example</strong> como <strong>.env</strong>, completa las dos variables y reinicia el servidor. La guía está en README.md.</div>
     <div id="mensaje" role="status" aria-live="polite" hidden></div>
     ${modo === 'admin' ? `<section id="login" class="panel login" hidden><span class="eyebrow">ACCESO DE ADMINISTRACIÓN</span><h2>Ingresa a tu panel</h2><p>Usa la cuenta que configuraste en Supabase.</p><form id="login-form"><label>Correo<input name="email" type="email" autocomplete="username" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label><button class="primario" type="submit">Iniciar sesión</button></form></section>` : ''}
