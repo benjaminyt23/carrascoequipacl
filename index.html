@@ -1,14 +1,31 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="carga-inicial">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#162c26" />
     <meta name="description" content="Catálogo y administración de accesorios para vehículos de Carrasco Equipa." />
     <title>Carrasco Equipa | Productos</title>
+    <!-- Estilo crítico: evita un destello incluso antes de descargar JavaScript. -->
+    <style>
+      html.carga-inicial { background:#101114;overflow:hidden; }
+      .carga-inicial #app { visibility:hidden; }
+      #carga-inicial { position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#101114;color:#fff;font-family:Arial,sans-serif;text-align:center;padding:24px; }
+      #carga-inicial[hidden] { display:none; }
+      .carga-marca { font-size:clamp(18px,4vw,26px);font-weight:800;letter-spacing:2px; }
+      .carga-emblema { display:grid;place-items:center;width:72px;height:72px;margin:0 auto 24px;background:#d92d36;border-radius:8px;font-size:32px;font-weight:800; }
+      .carga-spinner { width:24px;height:24px;margin:28px auto 0;border:2px solid #ffffff25;border-top-color:#f14545;border-radius:50%;animation:carga-giro .8s linear infinite; }
+      #carga-error { max-width:420px;line-height:1.6;color:#ccc; }
+      #carga-reintentar { padding:12px 22px;border:0;border-radius:6px;background:#d92d36;color:white;font:inherit;cursor:pointer; }
+      @keyframes carga-giro { to { transform:rotate(360deg); } }
+      @media(prefers-reduced-motion:reduce) { .carga-spinner { animation:none; } }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="carga-inicial" role="status" aria-live="polite" aria-busy="true">
+      <div><div class="carga-emblema" aria-hidden="true">CE</div><div class="carga-marca">CARRASCO EQUIPAMIENTO</div><div class="carga-spinner" aria-label="Cargando página"></div><p id="carga-error" hidden></p><button id="carga-reintentar" hidden>Reintentar</button></div>
+    </div>
+    <div id="app" inert aria-busy="true"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

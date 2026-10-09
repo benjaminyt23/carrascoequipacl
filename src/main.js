@@ -16,6 +16,27 @@ let productos = [];
 let administrador = false;
 // La ruta decide la vista; no hay enlaces públicos hacia administración.
 const modo = /^\/admin\/?$/.test(window.location.pathname) ? 'admin' : 'catalogo';
+// El catálogo público solo se muestra cuando termina toda la carga inicial.
+let loading = modo !== 'admin';
+function mostrarAplicacion() {
+  loading = false;
+  document.documentElement.classList.remove('carga-inicial');
+  document.getElementById('carga-inicial').hidden = true;
+  app.removeAttribute('inert');
+  app.setAttribute('aria-busy','false');
+}
+function mostrarErrorInicial() {
+  const pantalla=document.getElementById('carga-inicial');
+  pantalla.setAttribute('aria-busy','false');
+  pantalla.querySelector('.carga-spinner').hidden=true;
+  const mensaje=document.getElementById('carga-error');
+  mensaje.textContent='No pudimos cargar la página. Comprueba tu conexión y vuelve a intentarlo.';
+  mensaje.hidden=false;
+  const reintentar=document.getElementById('carga-reintentar');
+  reintentar.hidden=false;
+  reintentar.onclick=()=>window.location.reload();
+}
+if (modo === 'admin') mostrarAplicacion();
 const rutaProducto = window.location.pathname.match(/^\/producto\/([^/]+)\/?$/)?.[1];
 const rutaCatalogo = /^\/productos\/?$/.test(window.location.pathname);
 const esInicio = modo !== 'admin' && /^\/$/.test(window.location.pathname);
@@ -106,6 +127,7 @@ function actualizarVista() {
   if (gestorSitio) void gestorSitio.actualizarAcceso();
 }
 function renderProductos() {
+  if (loading) return;
   $('productos').setAttribute('aria-busy', String(cargando));
   if (cargando || !cargaCorrecta) {
     $('contador').textContent = '';
@@ -161,13 +183,12 @@ function aplicarPaginaPublica() {
 async function cargarConfiguracionPublica() {
   if (!supabase || modo === 'admin') return;
   try {
-    sitioPublico = await cargarSitio(supabase);
-    try {paginasPublicas=await cargarPaginasPublicas(supabase);} catch(error) {console.warn('Editor de páginas pendiente: ejecuta paginas-carrasco.sql.',error.message);}
-    renderProductos();
-    aplicarPaginaPublica();
+    [sitioPublico,paginasPublicas] = await Promise.all([cargarSitio(supabase),cargarPaginasPublicas(supabase)]);
+    if (!loading) { renderProductos(); aplicarPaginaPublica(); }
   } catch (error) {
-    // Un fallo del editor o una migración pendiente no interrumpe el catálogo.
     console.warn('No se pudo cargar la configuración visual del sitio:', error.message);
+    if (loading) throw error;
+    avisar('No se pudo actualizar la configuración del sitio. Intenta nuevamente.',true);
   }
 }
 // Pagina todas las filas para no perder productos después del límite de la API.
@@ -200,9 +221,10 @@ async function cargarProductos() {
     productos = [];
     cargaCorrecta = false;
     avisar(`No se pudo cargar el catálogo: ${explicarError(error)}`, true);
+    if (loading) throw error;
   } finally {
     if (version === versionCarga) { cargando = false; renderProductos(); }
-    if (version === versionCarga && modo !== 'admin') aplicarPaginaPublica();
+    if (version === versionCarga && modo !== 'admin' && !loading) aplicarPaginaPublica();
   }
 }
 async function revisarAdministrador() {
@@ -382,12 +404,28 @@ if (!supabase) {
   $('configuracion').hidden = false;
   $('recargar').disabled = true;
   actualizarVista();
+  if (loading) mostrarErrorInicial();
 } else {
   // No hacemos consultas dentro del callback de Auth para evitar bloqueos.
   supabase.auth.onAuthStateChange((evento) => {
     if (evento === 'SIGNED_OUT') { administrador = false; actualizarVista(); }
   });
   if (modo === 'admin') await revisarAdministrador();
-  actualizarVista();
-  await Promise.allSettled([cargarProductos(), cargarConfiguracionPublica()]);
+  if (modo === 'admin') {
+    actualizarVista();
+    await cargarProductos();
+  } else {
+    try {
+      await Promise.all([cargarProductos(), cargarConfiguracionPublica()]);
+      // Construye la página final bajo la pantalla de carga y la revela de una vez.
+      loading=false;
+      renderProductos();
+      aplicarPaginaPublica();
+      mostrarAplicacion();
+    } catch (error) {
+      loading=true;
+      console.warn('Carga inicial interrumpida:',error.message);
+      mostrarErrorInicial();
+    }
+  }
 }
