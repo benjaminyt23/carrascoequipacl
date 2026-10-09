@@ -11,12 +11,21 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.0.0
         version: 2.117.2
+      gsap:
+        specifier: ^3.15.0
+        version: 3.15.0
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
       vite:
         specifier: ^7.0.0
         version: 7.3.7
 
 packages:
+
+  '@electric-sql/pglite@0.5.8':
+    resolution: {integrity: sha512-n9tsbUOhwx2epK1V0ZG9Ar4SHWUju04dhmzZXiSBXwBoleOvIfals33NAaWgagQVAL4Rbvx/Ptsu3P+pA09f6Q==}
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -373,6 +382,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  gsap@3.15.0:
+    resolution: {integrity: sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==}
+
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
     engines: {node: '>=20.0.0'}
@@ -450,6 +462,8 @@ packages:
         optional: true
 
 snapshots:
+
+  '@electric-sql/pglite@0.5.8': {}
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
@@ -676,6 +690,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  gsap@3.15.0: {}
 
   iceberg-js@0.8.1: {}
 

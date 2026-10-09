@@ -1,6 +1,11 @@
 {
   "rewrites": [
+    { "source": "/productos", "destination": "/index.html" },
+    { "source": "/productos/", "destination": "/index.html" },
     { "source": "/admin", "destination": "/index.html" },
-    { "source": "/admin/", "destination": "/index.html" }
+    { "source": "/admin/", "destination": "/index.html" },
+    { "source": "/producto/:slug", "destination": "/index.html" },
+    { "source": "/producto/:slug/", "destination": "/index.html" },
+    { "source": "/((?!assets(?:/|$)|vista-previa\\.html$|index\\.html$|favicon\\.ico$).*)", "destination": "/index.html" }
   ]
 }

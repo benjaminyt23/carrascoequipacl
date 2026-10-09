@@ -11,6 +11,16 @@ export function buscarProductos(productos, consulta, incluirCodigo = false) {
   });
 }
 
+export function productosDestacados(productos, limite = 8) {
+  return productos.filter(p => p.badges?.includes('destacado')).slice(0, limite);
+}
+
+export function filtrarCatalogo(productos, { consulta = '', categoria = '', vehiculo = '', estado = '' } = {}) {
+  return buscarProductos(productos, consulta).filter(p =>
+    (!categoria || p.categoria === categoria) && (!vehiculo || p.vehiculo === vehiculo) &&
+    (!estado || (estado === 'disponible' ? p.stock > 0 : p.badges?.includes(estado))));
+}
+
 export function validarProducto(datos) {
   const producto = {};
   for (const campo of ['nombre', 'codigo', 'vehiculo', 'ano', 'descripcion', 'instalacion', 'foto']) {
@@ -33,5 +43,22 @@ export function validarProducto(datos) {
   }
   producto.foto ||= null;
   producto.codigo ||= null;
+  if ('slug' in datos) {
+    producto.slug = String(datos.slug ?? '').trim() || null;
+    if (producto.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(producto.slug)) throw new Error('El enlace del producto debe usar letras minúsculas, números y guiones.');
+  }
+  if ('categoria' in datos) producto.categoria = String(datos.categoria ?? '').trim();
+  if ('galeria' in datos) {
+    producto.galeria = Array.isArray(datos.galeria) ? datos.galeria : String(datos.galeria ?? '').split('\n').map(url=>url.trim()).filter(Boolean);
+    for (const url of producto.galeria) {
+      let valida = false;
+      try { valida = ['https:','http:'].includes(new URL(url).protocol); } catch { /* inválida */ }
+      if (!valida) throw new Error('Revisa las URLs de la galería del producto.');
+    }
+  }
+  if ('badges' in datos) {
+    if (!Array.isArray(datos.badges) || datos.badges.some(b=>!['nuevo','oferta','destacado'].includes(b))) throw new Error('Etiquetas de producto inválidas.');
+    producto.badges = datos.badges;
+  }
   return producto;
 }
