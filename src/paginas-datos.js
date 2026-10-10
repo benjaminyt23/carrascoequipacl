@@ -1,4 +1,5 @@
 import { TIPOS_BLOQUE, validarBloque } from './sitio-datos.js';
+import { validarOpcionesCodigo } from './codigo-personalizado.js';
 
 // El catálogo es una ruta de la aplicación, independiente de su página visual editable.
 export function resolverPaginaPublica(paginas,ruta,config) {
@@ -10,7 +11,7 @@ export function resolverPaginaPublica(paginas,ruta,config) {
   return {nombre:config.titulo_catalogo||'Catálogo',sistema:'productos',ruta:'/productos',bloques:[{tipo:'catalogo',ancla:'catalogo-carrasco',titulo:config.titulo_catalogo,visible:true,orden:0}]};
 }
 
-export const TIPOS_PAGINA = { ...TIPOS_BLOQUE, hero_sitio:'Hero principal del negocio', destacados_auto:'Destacados de Inicio', categorias:'Categorías del catálogo', catalogo:'Catálogo completo (buscador y filtros)', imagen:'Imagen', formulario:'Formulario de contacto por correo', comparacion:'Comparación', separador:'Separador', espaciador:'Espaciador' };
+export const TIPOS_PAGINA = { ...TIPOS_BLOQUE, codigo_personalizado:'Código personalizado', hero_sitio:'Hero principal del negocio', destacados_auto:'Destacados de Inicio', categorias:'Categorías del catálogo', catalogo:'Catálogo completo (buscador y filtros)', imagen:'Imagen', formulario:'Formulario de contacto por correo', comparacion:'Comparación', separador:'Separador', espaciador:'Espaciador' };
 export const ANIMACIONES_BLOQUE=['global','ninguno','fade','slide','fade_up','fade_down','slide_left','slide_right','zoom','reveal','blur','parallax'];
 export const PALETA_CARRASCO={color_principal:'#f14545',color_secundario:'#ff6464',color_fondo:'#101114',color_texto:'#f4f4f5',color_botones:'#d92d36',color_tarjetas:'#1b1d22',color_encabezado:'#101114',color_pie:'#15161a'};
 const idValido=id=>/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(id??'');
@@ -64,6 +65,7 @@ export function validarBloquePagina(datos) {
   const bloque=validarBloque({...datos,tipo:especial?'texto':original,opciones:{...opciones,animacion:'global',items:opciones.items??[]}});
   bloque.id=idValido(datos.id)?datos.id:crypto.randomUUID();bloque.tipo=original;
   bloque.opciones.animacion=opciones.animacion||'global';
+  if(original==='codigo_personalizado') Object.assign(bloque.opciones,validarOpcionesCodigo(opciones));
   bloque.diseno=validarDiseno(datos.diseno);
   return bloque;
 }

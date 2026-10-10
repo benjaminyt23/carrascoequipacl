@@ -3,12 +3,20 @@ import { visualConfig, slugProducto, enlaceWhatsApp } from './visual.js';
 import { activarExperiencia } from './experiencia.js';
 import { productosDestacados } from './productos.js';
 import { paginasVisibles, validarDiseno, resolverPaginaPublica } from './paginas-datos.js';
+import { validarOpcionesCodigo } from './codigo-personalizado.js';
 
 const dinero = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const imagen = (url, alt, clase = '', hero = false) => urlSegura(url) ? `<img class="${clase}" src="${e(url)}" alt="${e(alt)}" loading="${hero ? 'eager' : 'lazy'}" ${hero ? 'fetchpriority="high"' : ''} decoding="async" referrerpolicy="no-referrer">` : '';
 const enlace = (url, texto, clase = '') => urlSegura(url,true) ? `<a class="${clase}" href="${e(['#catalogo','/#catalogo'].includes(url) ? '/productos' : url)}">${e(texto)}<span aria-hidden="true"> ↗</span></a>` : '';
 export function variablesColores(config) {
   return Object.keys(COLORES).filter(clave => /^#[\da-f]{6}$/i.test(config[clave])).map(clave => `--${clave.replaceAll('_','-')}:${config[clave]}`).join(';');
+}
+export function aplicarFondoExterior(config) {
+  const color=/^#[\da-f]{6}$/i.test(config.color_fondo)?config.color_fondo:'#101114';
+  document.documentElement.style.setProperty('--fondo-exterior',color);
+  // La barra de desplazamiento nativa también debe respetar un tema oscuro.
+  const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+  document.documentElement.style.colorScheme=rgb[0]*.299+rgb[1]*.587+rgb[2]*.114<128?'dark':'light';
 }
 export function variablesVisuales(config) {
   const v = visualConfig(config);
@@ -150,7 +158,14 @@ export function renderBloquesPagina(config,pagina,productos,{preview=false}={}) 
       if(propiedades[k]) css.push(`${propiedades[k]}:${v}${typeof v==='number'&&k!=='columnas'?'px':''}`);
     }
     const tipo=b.tipo;const entrada=b.opciones?.animacion||'global';let contenido='';
-    if(tipo==='hero_sitio') contenido=`<section id="${e(b.ancla)}" class="intro hero-premium">${renderPortada(config)}</section>`;
+    if(tipo==='codigo_personalizado') {
+      try {
+        // También limpia al leer Supabase: no confía en lo guardado por el editor.
+        const o=validarOpcionesCodigo(b.opciones??{});
+        contenido=`<section id="${e(b.ancla)}" class="sitio-bloque bloque-codigo"><div class="codigo-contenido" style="--embed-ancho:${o.embed_ancho?o.embed_ancho+'px':'100%'};--embed-alto:${o.embed_alto}px">${o.codigo_html}</div></section>`;
+      } catch { contenido=`<section id="${e(b.ancla)}" class="sitio-bloque"><p role="status">Este contenido externo no está disponible. Revisa el bloque Código personalizado en administración.</p></section>`; }
+    }
+    else if(tipo==='hero_sitio') contenido=`<section id="${e(b.ancla)}" class="intro hero-premium">${renderPortada(config)}</section>`;
     else if(tipo==='catalogo'&&!home) {
       if(catalogoMostrado) return '';catalogoMostrado=true;
       contenido=preview ? `<section class="catalogo-publico"><div class="resumen"><h2>${e(b.titulo||config.titulo_catalogo)}</h2><span>${productos.length} productos</span></div><p>Buscador y filtros disponibles en la página pública.</p><div class="grid">${renderProductosDestacados(productos,config)}</div></section>` : '<div data-catalogo-pagina></div>';
@@ -175,6 +190,7 @@ export function renderPaginaCMS(sitio,pagina,productos,paginas) {
 export function aplicarSitio(sitio,productos,{catalogo=false,pagina=null,paginas=null,ruta='/'}={}) {
   limpiarExperiencia();
   const {config,bloques,menu}=sitio;
+  aplicarFondoExterior(config);
   // El catálogo nunca depende de que siga existiendo una página en el constructor.
   if(catalogo||/^\/(productos|catalogo)\/?$/.test(ruta)) {
     catalogo=true;

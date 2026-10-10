@@ -2,7 +2,7 @@ import './style.css';
 import './sitio.css';
 import './premium.css';
 import './identidad.css';
-import { renderPagina, renderPaginaCMS } from './sitio-render.js';
+import { renderPagina, renderPaginaCMS, aplicarFondoExterior } from './sitio-render.js';
 import { activarExperiencia } from './experiencia.js';
 let limpiar=()=>{};
 let focoAnterior='';
@@ -11,6 +11,7 @@ window.addEventListener('message',event=> {
   const {sitio,productos}=event.data;
   if(!sitio?.config || !Array.isArray(sitio.bloques) || !Array.isArray(sitio.menu) || !Array.isArray(productos)) return;
   limpiar();
+  aplicarFondoExterior(sitio.config);
   document.body.innerHTML=event.data.pagina ? renderPaginaCMS(sitio,event.data.pagina,productos,event.data.paginas??[]) : renderPagina(sitio,productos,{catalogo:event.data.catalogo===true});
   document.querySelector('header').classList.toggle('header-fijo',sitio.config.visual?.header_fijo!==false);
   // Vista real con animaciones e interacción local, sin escrituras ni cliente Supabase.

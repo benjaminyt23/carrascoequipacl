@@ -68,6 +68,23 @@
 
 /* Espacios estables antes de recibir imágenes y metadatos de video. */
 html { scrollbar-gutter:stable; }
+/* El lienzo de html también queda visible con overscroll y fondos transparentes. */
+html:root { min-height:100%;background:var(--fondo-exterior,#f6f7f2); }
+html.carga-inicial:root { background:#101114; }
+.cms-codigo-editor textarea { font-family:Consolas,monospace;min-height:240px;resize:vertical; }
+.codigo-contenido { width:100%;max-width:var(--embed-ancho,100%);min-width:0;margin-inline:0 auto;overflow-wrap:anywhere;border-radius:inherit; }
+.cms-alineacion-centro .codigo-contenido { margin-inline:auto; }
+.cms-alineacion-derecha .codigo-contenido { margin-inline:auto 0; }
+.codigo-contenido iframe { display:block;width:100%;max-width:100%;height:var(--embed-alto,450px);border:0;border-radius:inherit; }
+.codigo-contenido img { display:block;max-width:100%;height:auto; }
+.bloque-codigo { min-width:0;overflow:hidden; }
+body { min-height:100vh;min-height:100svh; }
+body.sitio-publico #app,
+body > .sitio-publico { min-height:100vh;min-height:100svh;display:flex;flex-direction:column; }
+.sitio-publico main { width:100%;flex:1;display:flex;flex-direction:column;margin:0 auto; }
+.sitio-publico main > :is(#pagina-cms,#producto-pagina,#secciones-sitio) { flex:1 0 auto; }
+/* Evita el colapso del margen final hacia el fondo exterior del documento. */
+.sitio-publico main > footer { flex-shrink:0;margin-bottom:0; }
 .sitio-publico #app { min-height:100svh; }
 .sitio-publico .sitio-logo { width:90px;height:64px;flex-shrink:0; }
 .sitio-publico .hero-logo { width:150px;height:80px; }
