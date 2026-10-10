@@ -2,7 +2,7 @@ import './style.css';
 import './sitio.css';
 import './premium.css';
 import './identidad.css';
-import { renderPagina, renderPaginaCMS, aplicarFondoExterior } from './sitio-render.js';
+import { renderPagina, renderPaginaCMS, renderHeader, renderFooter, aplicarFondoExterior } from './sitio-render.js';
 import { activarExperiencia } from './experiencia.js';
 let limpiar=()=>{};
 let focoAnterior='';
@@ -13,6 +13,11 @@ window.addEventListener('message',event=> {
   limpiar();
   aplicarFondoExterior(sitio.config);
   document.body.innerHTML=event.data.pagina ? renderPaginaCMS(sitio,event.data.pagina,productos,event.data.paginas??[]) : renderPagina(sitio,productos,{catalogo:event.data.catalogo===true});
+  // También la vista previa antigua de bloques usa el header y la fuente pública.
+  if(!event.data.pagina && Array.isArray(event.data.paginas)) {
+    document.querySelector('header').innerHTML=renderHeader(sitio.config,sitio.menu,event.data.paginas);
+    document.querySelector('footer').innerHTML=renderFooter(sitio.config,sitio.menu,event.data.paginas);
+  }
   document.querySelector('header').classList.toggle('header-fijo',sitio.config.visual?.header_fijo!==false);
   // Vista real con animaciones e interacción local, sin escrituras ni cliente Supabase.
   document.querySelectorAll('a').forEach(a=>a.addEventListener('click',event=> {

@@ -218,11 +218,11 @@ export function crearAdminSitio({ cliente, esAdmin, obtenerProductos }) {
         const bloque = { ...leerBloque(), id: bloqueId || 'nuevo-bloque' };
         borrador.bloques = borrador.bloques.filter(b => b.id !== bloqueId).concat(bloque);
       }
-      if ($('menu-editor').open) borrador.menu = borrador.menu.filter(m => m.id !== menuId).concat({ ...validarMenu(valoresFormulario($('menu-form'))), id: menuId || 'nuevo-menu' });
+      // El menú de preview coincide con el guardado; no añade opciones sin publicar.
       const frame=$('sitio-iframe');
       frame.removeAttribute('srcdoc');
       const catalogo=$('bloque-editor').open && ['destacados','categoria'].includes($('bloque-form').elements.tipo.value);
-      frame.onload=()=>frame.contentWindow.postMessage({tipo:'carrasco-preview',catalogo,sitio:borrador,productos:obtenerProductos().map(({codigo,...p})=>p)},window.location.origin);
+      frame.onload=()=>frame.contentWindow.postMessage({tipo:'carrasco-preview',catalogo,sitio:borrador,paginas:gestorPaginas.paginasPublicas(),productos:obtenerProductos().map(({codigo,...p})=>p)},window.location.origin);
       frame.src='/vista-previa.html';
       $('sitio-preview-dialog').showModal();
     } catch (error) {

@@ -11,6 +11,9 @@ const area=(nombre,label)=>`<label class="ancho">${label}<textarea name="${nombr
 const select=(nombre,label,opciones)=>`<label>${label}<select name="${nombre}">${opciones.map(([valor,texto])=>`<option value="${e(valor)}">${e(texto)}</option>`).join('')}</select></label>`;
 const dispositivo=(id)=>`<div class="cms-preview-card"><h3>Vista previa · Cambios sin publicar</h3><div class="cms-dispositivos" role="group" aria-label="Tamaño de vista previa">${[['escritorio','Escritorio'],['tablet','Tablet'],['celular','Celular']].map(([d,l])=>`<button type="button" class="secundario" data-device="${d}" data-frame="${id}" aria-pressed="${d==='escritorio'}">${l}</button>`).join('')}<button type="button" class="secundario" data-replay>Probar animaciones ↗</button></div><div class="cms-preview-stage"><div class="cms-preview-dispositivo" data-device="escritorio"><iframe id="${id}" src="/vista-previa.html" title="Vista previa de página" sandbox="allow-scripts allow-same-origin"></iframe></div></div><p class="cms-preview-note">Se actualiza al editar y no publica cambios. Los embeds externos son interactivos: no envíes datos reales al probarlos. Escritorio 1200 px · Tablet 768 px · Celular 390 px.</p><p class="cms-preview-error" role="status"></p></div>`;
 
+// El contenido se previsualiza como borrador; la navegación conserva la fuente pública.
+export function paginasMenuPreview(publicadas) {return paginasVisibles(publicadas);}
+
 export function crearAdminPaginas({raiz,cliente,esAdmin,obtenerProductos,obtenerSitioBorrador}) {
   let paginas=[],publicadas=[],bloquesTodos=[],actual=null,bloques=[],ocupado=false,listo=false,arrastrado=null,temporizador=null,sucio=false;
   raiz.innerHTML=`<section data-pane="paginas" hidden class="panel"><div class="cms-cabecera"><div><h2>Páginas</h2><p>Crea páginas y subpáginas. Guarda un borrador, revisa y publica cuando esté listo.</p></div><button type="button" class="primario" data-cms="nueva">Crear página</button></div><p id="cms-aviso" role="status"></p><div id="cms-lista" class="cms-paginas-lista"></div><div class="cms-editor-layout" id="cms-editor" hidden><div><h3 id="cms-titulo">Editor de página</h3><form id="cms-meta" class="cms-editor-meta"><fieldset class="form-grid">${input('nombre','Nombre de la página')}${input('slug','URL: solo el último segmento (ej. multimedia)')}${select('padre_id','Página padre',[['','Sin página padre']])}${input('orden','Orden de página','number','step="1"')}${input('nombre_menu','Nombre visible en el menú (opcional)')}${input('icono','Icono opcional (emoji o símbolo)','text','maxlength="12"')}<label><input type="checkbox" name="en_menu"> Mostrar en el menú</label><label><input type="checkbox" name="nueva_pestana"> Abrir en nueva pestaña</label></fieldset></form><p class="cms-url" id="cms-ruta"></p><div class="cms-acciones"><button class="primario" type="button" data-cms="guardar">Guardar borrador</button><button class="primario" type="button" data-cms="publicar">Guardar y publicar</button><button class="secundario" type="button" data-cms="recargar">Descartar cambios / recargar</button></div><p class="cms-ayuda">Guardar borrador no cambia la página pública. Publicar actualiza su contenido y menú. Publica primero la página padre. La configuración general del sitio conserva sus botones Guardar independientes.</p><div class="cms-cabecera"><h3>Bloques de esta página</h3><button type="button" class="secundario" data-cms="bloque-nuevo">Agregar bloque</button></div><div id="cms-bloques" class="cms-bloques-lista"></div></div>${dispositivo('cms-frame-editor')}</div></section>
@@ -29,7 +32,7 @@ export function crearAdminPaginas({raiz,cliente,esAdmin,obtenerProductos,obtener
     const p=meta();let lista=structuredClone(bloques);
     if($('cms-bloque-dialog').open) {const b=leerBloque();lista=lista.filter(x=>x.id!==b.id).concat(b);}
     const anclas=lista.map(b=>b.ancla);if(new Set(anclas).size!==anclas.length) throw new Error('Cada bloque necesita un identificador de sección diferente.');
-    const menu=paginas.map(x=>x.id===p.id?p:x).map(x=>({...x,visible:true,ruta:rutaPagina(x,paginas.map(f=>f.id===p.id?p:f))}));
+    const menu=paginasMenuPreview(publicadas);
     return {pagina:{...p,ruta:rutaPagina(p,paginas),bloques:lista},paginas:menu};
   }
   function enviarPreview(animar=false) {
@@ -198,6 +201,7 @@ export function crearAdminPaginas({raiz,cliente,esAdmin,obtenerProductos,obtener
   window.addEventListener('beforeunload',event=>{if(sucio&&esAdmin()) {event.preventDefault();event.returnValue='';}});
   $('cms-bloque-dialog').addEventListener('cancel',event=>{if(ocupado) event.preventDefault();else programarPreview();});
   return {
+    paginasPublicas:()=>paginasMenuPreview(publicadas),
     async actualizarAcceso() {
       if(!esAdmin()) {listo=false;paginas=[];actual=null;bloques=[];sucio=false;$('cms-bloque-dialog').close();frames().forEach(f=>{f.dataset.ready='false';f.src='/vista-previa.html';});return;}
       if(!listo) try {await cargar();} catch(error) {aviso('Ejecuta supabase/paginas-carrasco.sql para activar Páginas y Vista previa. '+error.message,true);}
