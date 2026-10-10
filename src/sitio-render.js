@@ -26,15 +26,19 @@ export function variablesVisuales(config) {
 export function renderMarca(config) {
   return `<a class="marca" href="/" aria-label="${e(config.nombre_negocio)}">${imagen(config.logo,config.nombre_negocio,'sitio-logo') || '<span class="marca-emblema" aria-hidden="true">CE<span>↗</span></span>'}<span>${e(config.nombre_negocio)}</span></a>`;
 }
+// El catálogo tiene su propio botón. Evita duplicarlo desde menús o páginas,
+// sin alterar las rutas, los bloques ni los productos almacenados.
+const enlaceCatalogo=url=>['/productos','/catalogo','#catalogo','/#catalogo'].includes(String(url??'').trim().replace(/\/$/,'').split('?')[0].replace(/^(\/productos|\/catalogo)#.*$/,'$1'));
+const nombreProductos=nombre=>String(nombre??'').trim().toLocaleLowerCase('es')==='productos';
 export function renderMenu(menu, raiz = false) {
   // Retira el enlace antiguo «quienessomos» que quedó sin una sección válida.
-  return visiblesOrdenados(menu).filter(f=>String(f.nombre).trim().toLowerCase()!=='quienessomos').map(f=>{
+  return visiblesOrdenados(menu).filter(f=>String(f.nombre).trim().toLowerCase()!=='quienessomos'&&!nombreProductos(f.nombre)&&!enlaceCatalogo(f.enlace)).map(f=>{
     const html=enlace(f.enlace,f.nombre,'nav');
     return raiz && f.enlace.startsWith('#') ? html.replace('href="#','href="/#') : html;
   }).join('');
 }
 export function renderMenuPaginas(paginas) {
-  const visibles=paginasVisibles(paginas);
+  const visibles=paginasVisibles(paginas).map(p=>({...p,en_menu:p.en_menu&&p.sistema!=='productos'&&!enlaceCatalogo(p.ruta)&&!nombreProductos(p.nombre_menu||p.nombre)}));
   const navegar=(padre=null)=>visibles.filter(p=>p.padre_id===padre&&p.en_menu).map(p=>{
     const hijos=navegar(p.id);
     const link=`<a class="nav" href="${e(urlSegura(p.ruta,true)||'/')}" ${p.nueva_pestana ? 'target="_blank" rel="noopener noreferrer"' : ''}>${p.icono?`<span class="menu-icono">${e(p.icono)}</span>`:''}${e(p.nombre_menu||p.nombre)}</a>`;

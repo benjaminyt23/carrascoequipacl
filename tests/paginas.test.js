@@ -27,7 +27,7 @@ test('Rutas jerárquicas, ciclos, colisiones y URLs reservadas',()=>{
 });
 test('Página padre oculta retira descendientes del menú y ciclos no bloquean el renderer',()=>{
   assert.equal(paginasVisibles([{...padre,visible:false},hija]).length,0);
-  assert.match(renderMenuPaginas([padre,hija]),/menu-dropdown/);
+  assert.match(renderMenuPaginas([{...padre,nombre:'Servicios',ruta:'/servicios',sistema:'personalizada'},hija]),/menu-dropdown/);
   assert.match(renderMenuPaginas([padre,hija]),/\/productos\/multimedia/);
   assert.ok(!renderMenuPaginas([{...padre,visible:false},hija]).includes('Multimedia'));
   assert.equal(renderMenuPaginas([{...padre,padre_id:hija.id},hija]),'');
