@@ -59,7 +59,7 @@ export function crearAdminPaginas({raiz,cliente,esAdmin,obtenerProductos,obtener
     $('cms-lista').innerHTML=paginas.slice().sort((a,b)=>a.orden-b.orden).map(p=>{
       const publicada=publicadas.find(x=>x.id===p.id);
       const estado=visibles.has(p.id)?'Publicada':publicada?.visible?'Oculta por página padre':publicada?'Oculta':'Borrador';
-      return `<article class="cms-pagina-fila"><div><strong>${e(p.nombre)}</strong><small>${e(rutaPagina(p,paginas))} · ${estado} · Orden ${p.orden}${publicada&&new Date(p.updated_at)>new Date(publicada.published_at)?' · Borrador pendiente':''}</small></div><div class="acciones"><button class="secundario" type="button" data-edit-page="${p.id}">Editar</button><button class="secundario" type="button" data-copy-page="${p.id}">Duplicar</button>${publicada?.visible?`<button class="secundario" type="button" data-hide-page="${p.id}">Ocultar</button>`:''}${p.sistema==='personalizada'?`<button class="eliminar" type="button" data-delete-page="${p.id}">Eliminar</button>`:''}</div></article>`;
+      return `<article class="cms-pagina-fila"><div><strong>${e(p.nombre)}</strong><small>${e(rutaPagina(p,paginas))} · ${estado} · Orden ${p.orden}${publicada&&new Date(p.updated_at)>new Date(publicada.published_at)?' · Borrador pendiente':''}</small>${p.sistema==='inicio'?'<small>Página del sistema: Inicio es la entrada principal de la web y no puede eliminarse.</small>':p.sistema==='productos'?'<small>Página visual eliminable. El catálogo independiente seguirá disponible en /productos; no se borran productos.</small>':''}</div><div class="acciones"><button class="secundario" type="button" data-edit-page="${p.id}">Editar</button><button class="secundario" type="button" data-copy-page="${p.id}">Duplicar</button>${publicada?.visible?`<button class="secundario" type="button" data-hide-page="${p.id}">Ocultar</button>`:''}${p.sistema!=='inicio'?`<button class="eliminar" type="button" data-delete-page="${p.id}">Eliminar</button>`:''}</div></article>`;
     }).join('')||'<p>No hay páginas. Ejecuta paginas-carrasco.sql.</p>';
     $('cms-preview-pagina').innerHTML=paginas.map(p=>`<option value="${p.id}">${e(p.nombre)} · ${e(rutaPagina(p,paginas))}</option>`).join('');
     if(actual) $('cms-preview-pagina').value=actual.id;
@@ -140,7 +140,23 @@ export function crearAdminPaginas({raiz,cliente,esAdmin,obtenerProductos,obtener
       if(boton.dataset.editPage) seleccionar(boton.dataset.editPage);
       if(boton.dataset.copyPage) await operar(async()=>{const {data,error}=await cliente.rpc('cms_duplicar_pagina',{p_id:boton.dataset.copyPage});if(error) throw error;await cargar(data);aviso('Copia creada como borrador. Edita su URL y publícala cuando esté lista.');});
       if(boton.dataset.hidePage&&confirm('¿Ocultar esta página? Sus subpáginas también dejarán de ser públicas hasta volver a publicarla.')) await operar(async()=>{const {error}=await cliente.rpc('cms_ocultar_pagina',{p_id:boton.dataset.hidePage});if(error) throw error;await cargar();aviso('Página oculta.');});
-      if(boton.dataset.deletePage&&confirm('¿Eliminar la página y sus bloques? Las páginas con subpáginas requieren moverlas primero.')) await operar(async()=>{const {error}=await cliente.from('paginas').delete().eq('id',boton.dataset.deletePage).select('id').single();if(error) throw error;await cargar();aviso('Página eliminada.');});
+      if(boton.dataset.deletePage) {
+        const id=boton.dataset.deletePage,p=paginas.find(x=>x.id===id);
+        if(!p||p.sistema==='inicio') return;
+        if(paginas.some(x=>x.padre_id===id)||publicadas.some(x=>x.padre_id===id)) {aviso('Esta página tiene subpáginas. Muévelas a otro padre y publica esos cambios, o elimínalas primero. No se ha eliminado nada.',true);return;}
+        const extra=p.sistema==='productos'?' El catálogo seguirá funcionando en /productos y no se borrará ningún producto.':'';
+        if(!confirm(`¿Seguro que quieres eliminar la página “${p.nombre}” y sus bloques? Esta acción no se puede deshacer.${extra}`)) return;
+        await operar(async()=>{
+          if(!p.created_at) {paginas=paginas.filter(x=>x.id!==id);sucio=false;pintarLista();seleccionar(paginas[0]?.id,true);}
+          else {
+            const {error}=await cliente.rpc('cms_eliminar_pagina',{p_id:id});
+            if(error?.code==='PGRST202'||error?.code==='42883') throw new Error('Falta activar la eliminación segura. Ejecuta supabase/eliminar-paginas.sql en SQL Editor y vuelve a intentarlo.');
+            if(error) throw error;
+            sucio=false;await cargar();
+          }
+          aviso('Página y bloques eliminados. Los productos del catálogo se conservan.'+extra);
+        });
+      }
       if(boton.dataset.cms==='nueva') {
         if(sucio&&!confirm('¿Descartar los cambios locales para crear una página?')) return;
         const p={id:crypto.randomUUID(),nombre:'Nueva página',slug:'nueva-pagina-'+crypto.randomUUID().slice(0,8),padre_id:null,sistema:'personalizada',orden:paginas.length,en_menu:true,nombre_menu:'',icono:'',nueva_pestana:false};paginas.push(p);sucio=false;pintarLista();seleccionar(p.id,true);sucio=true;aviso('Página nueva local. Guarda el borrador para conservarla en Supabase.');

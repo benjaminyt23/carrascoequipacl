@@ -41,7 +41,7 @@ Abre la dirección indicada por Vite y entra manualmente a `/admin`. Inicia sesi
 
 **Guardar borrador** no cambia el sitio público. **Guardar y publicar** guarda primero y luego publica la página. Si publicar falla, se conserva el borrador y se muestra el motivo. La página pública se actualiza al recargar, sin otro despliegue.
 
-Las páginas Inicio y Productos conservan sus rutas `/` y `/productos` y no tienen botón Eliminar. Puedes editar sus nombres, menú, diseño y bloques. Productos conserva un catálogo completo aunque quites accidentalmente su bloque de catálogo. Inicio nunca rellena destacados con productos comunes.
+Inicio conserva `/` y no tiene botón Eliminar: es la página de entrada del sistema. Con la actualización `eliminar-paginas.sql`, la página visual Productos sí tiene botón Eliminar; el catálogo independiente conserva `/productos`. Consulta `GUIA-ELIMINAR-PAGINAS.md`. Puedes editar nombres, menú, diseño y bloques. Productos conserva un catálogo completo aunque quites accidentalmente su bloque de catálogo. Inicio nunca rellena destacados con productos comunes.
 
 ## 4. Crear una subpágina
 

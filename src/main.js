@@ -8,7 +8,7 @@ import { subirFoto } from './fotos.js';
 import { cargarSitio } from './sitio-datos.js';
 import { aplicarSitio, renderTarjeta, renderProducto } from './sitio-render.js';
 import { slugProducto } from './visual.js';
-import { cargarPaginasPublicas } from './paginas-datos.js';
+import { cargarPaginasPublicas, resolverPaginaPublica } from './paginas-datos.js';
 
 const app = document.querySelector('#app');
 const dinero = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -38,7 +38,7 @@ function mostrarErrorInicial() {
 }
 if (modo === 'admin') mostrarAplicacion();
 const rutaProducto = window.location.pathname.match(/^\/producto\/([^/]+)\/?$/)?.[1];
-const rutaCatalogo = /^\/productos\/?$/.test(window.location.pathname);
+const rutaCatalogo = /^\/(productos|catalogo)\/?$/.test(window.location.pathname);
 const esInicio = modo !== 'admin' && /^\/$/.test(window.location.pathname);
 const rutaActual=window.location.pathname.replace(/\/$/,'')||'/';
 const filtrosPublicos=modo!=='admin'&&!rutaProducto;
@@ -168,7 +168,7 @@ function actualizarPaginaProducto() {
 function aplicarPaginaPublica() {
   actualizarPaginaProducto();
   if(sitioPublico) {
-    aplicarSitio(sitioPublico,productos,{catalogo:rutaCatalogo,pagina:paginasPublicas?.find(p=>p.ruta===rutaActual),paginas:paginasPublicas,ruta:rutaActual});
+    aplicarSitio(sitioPublico,productos,{catalogo:rutaCatalogo,pagina:resolverPaginaPublica(paginasPublicas,rutaActual,sitioPublico.config),paginas:paginasPublicas,ruta:rutaActual});
     if(paginasPublicas===null&&!esInicio&&!rutaProducto&&!rutaCatalogo) {
       document.querySelector('.intro').hidden=true;document.querySelector('.catalogo-publico').hidden=true;$('secciones-sitio').hidden=true;
       $('producto-pagina').hidden=false;$('producto-pagina').innerHTML='<div class="vacio"><h1>Página no disponible</h1><a href="/">Volver al inicio</a></div>';

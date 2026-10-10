@@ -1,10 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validarPagina, rutaPagina, paginasVisibles, validarBloquePagina, validarDiseno } from '../src/paginas-datos.js';
-import { renderBloquesPagina, renderMenuPaginas, renderPaginaCMS } from '../src/sitio-render.js';
+import { validarPagina, rutaPagina, paginasVisibles, validarBloquePagina, validarDiseno, resolverPaginaPublica } from '../src/paginas-datos.js';
+import { renderBloquesPagina, renderMenuPaginas, renderPaginaCMS, renderHeader } from '../src/sitio-render.js';
 const padre={id:'00000000-0000-4000-8000-000000000101',nombre:'Productos',slug:'productos',sistema:'productos',padre_id:null,visible:true,en_menu:true,orden:0,ruta:'/productos'};
 const hija={id:'00000000-0000-4000-8000-000000000103',nombre:'Multimedia',slug:'multimedia',sistema:'personalizada',padre_id:padre.id,visible:true,en_menu:true,orden:0,ruta:'/productos/multimedia'};
 const config={nombre_negocio:'Carrasco',titulo_catalogo:'Catálogo',visual:{}};
+test('Eliminar la página visual Productos conserva la ruta del catálogo y sus enlaces',()=>{
+  const pagina=resolverPaginaPublica([], '/productos',config);
+  assert.equal(pagina.sistema,'productos');
+  assert.match(renderBloquesPagina(config,pagina,[]),/data-catalogo-pagina/);
+  assert.equal(resolverPaginaPublica([], '/productos/multimedia',config),undefined);
+  assert.equal(resolverPaginaPublica([padre],'/productos',config),padre);
+  for(const ruta of ['/productos/','/catalogo','/catalogo/']) assert.match(renderBloquesPagina(config,resolverPaginaPublica([],ruta,config),[]),/data-catalogo-pagina/);
+  const recreada={...padre,sistema:'personalizada',bloques:[]};
+  assert.match(renderBloquesPagina(config,resolverPaginaPublica([recreada],'/productos',config),[]),/data-catalogo-pagina/);
+  assert.match(renderHeader(config,[],[]),/href="\/productos">Catálogo/);
+  assert.match(renderBloquesPagina(config,{sistema:'inicio',bloques:[{tipo:'destacados_auto',ancla:'destacados',titulo:'Productos destacados',boton_texto:'Ver todos los productos',boton_enlace:'/productos',visible:true,orden:0}]},[]),/href="\/productos"/);
+});
 test('Rutas jerárquicas, ciclos, colisiones y URLs reservadas',()=>{
   assert.equal(rutaPagina(hija,[padre,hija]),'/productos/multimedia');
   assert.equal(validarPagina(hija,[padre,hija]).slug,'multimedia');

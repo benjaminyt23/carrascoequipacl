@@ -2,7 +2,7 @@ import { escapar as e, urlSegura, visiblesOrdenados, COLORES } from './sitio-dat
 import { visualConfig, slugProducto, enlaceWhatsApp } from './visual.js';
 import { activarExperiencia } from './experiencia.js';
 import { productosDestacados } from './productos.js';
-import { paginasVisibles, validarDiseno } from './paginas-datos.js';
+import { paginasVisibles, validarDiseno, resolverPaginaPublica } from './paginas-datos.js';
 
 const dinero = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const imagen = (url, alt, clase = '', hero = false) => urlSegura(url) ? `<img class="${clase}" src="${e(url)}" alt="${e(alt)}" loading="${hero ? 'eager' : 'lazy'}" ${hero ? 'fetchpriority="high"' : ''} decoding="async" referrerpolicy="no-referrer">` : '';
@@ -175,6 +175,11 @@ export function renderPaginaCMS(sitio,pagina,productos,paginas) {
 export function aplicarSitio(sitio,productos,{catalogo=false,pagina=null,paginas=null,ruta='/'}={}) {
   limpiarExperiencia();
   const {config,bloques,menu}=sitio;
+  // El catálogo nunca depende de que siga existiendo una página en el constructor.
+  if(catalogo||/^\/(productos|catalogo)\/?$/.test(ruta)) {
+    catalogo=true;
+    pagina=resolverPaginaPublica(pagina?[{...pagina,ruta:'/productos'}]:paginas,'/productos',config);
+  }
   const v = visualConfig(config);
   document.body.classList.add('sitio-publico');
   document.body.id='topo-carrasco';

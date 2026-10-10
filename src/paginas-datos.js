@@ -1,5 +1,15 @@
 import { TIPOS_BLOQUE, validarBloque } from './sitio-datos.js';
 
+// El catálogo es una ruta de la aplicación, independiente de su página visual editable.
+export function resolverPaginaPublica(paginas,ruta,config) {
+  const normalizada=ruta.replace(/\/$/,'')||'/';
+  const esCatalogo=['/productos','/catalogo'].includes(normalizada);
+  const pagina=paginas?.find(p=>p.ruta===(esCatalogo?'/productos':normalizada));
+  if(!esCatalogo) return pagina;
+  if(pagina) return pagina.sistema==='productos'?pagina:{...pagina,sistema:'productos'};
+  return {nombre:config.titulo_catalogo||'Catálogo',sistema:'productos',ruta:'/productos',bloques:[{tipo:'catalogo',ancla:'catalogo-carrasco',titulo:config.titulo_catalogo,visible:true,orden:0}]};
+}
+
 export const TIPOS_PAGINA = { ...TIPOS_BLOQUE, hero_sitio:'Hero principal del negocio', destacados_auto:'Destacados de Inicio', categorias:'Categorías del catálogo', catalogo:'Catálogo completo (buscador y filtros)', imagen:'Imagen', formulario:'Formulario de contacto por correo', comparacion:'Comparación', separador:'Separador', espaciador:'Espaciador' };
 export const ANIMACIONES_BLOQUE=['global','ninguno','fade','slide','fade_up','fade_down','slide_left','slide_right','zoom','reveal','blur','parallax'];
 export const PALETA_CARRASCO={color_principal:'#f14545',color_secundario:'#ff6464',color_fondo:'#101114',color_texto:'#f4f4f5',color_botones:'#d92d36',color_tarjetas:'#1b1d22',color_encabezado:'#101114',color_pie:'#15161a'};

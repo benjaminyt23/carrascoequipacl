@@ -31,12 +31,15 @@ test('Migración y RLS: borradores privados, publicación, jerarquía, copia y c
     assert.deepEqual((await db.query('select * from public.bloques_sitio')).rows,anteriores);
     assert.deepEqual((await db.query("select schemaname,tablename,policyname,qual,with_check from pg_policies where tablename in ('productos','administradores','bloques_sitio','menu_sitio','configuracion_sitio') order by tablename,policyname")).rows,politicas);
     assert.equal((await db.query("select count(*)::integer n from public.bloques_pagina where datos->>'titulo'='Contenido anterior conservado'")).rows[0].n,1);
+    for(let i=0;i<2;i++) await db.exec(await readFile(new URL('../supabase/eliminar-paginas.sql',import.meta.url),'utf8'));
+    assert.deepEqual((await db.query("select schemaname,tablename,policyname,qual,with_check from pg_policies where tablename in ('productos','administradores','bloques_sitio','menu_sitio','configuracion_sitio') order by tablename,policyname")).rows,politicas);
     async function rol(nombre,usuario='') {await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[usuario]);await db.exec('set role '+nombre);}
     await rol('authenticated',admin);
     const padre={id:crypto.randomUUID(),nombre:'Servicios',slug:'servicios',padre_id:null,sistema:'personalizada',orden:2,en_menu:true};
     const b={id:crypto.randomUUID(),tipo:'texto',titulo:'Texto publicado',ancla:'servicios-texto',visible:true,orden:0};
     const guardar=async(p,lista)=>db.query('select public.cms_guardar_pagina($1::jsonb,$2::jsonb)',[JSON.stringify(p),JSON.stringify(lista)]);
     const publicar=async id=>db.query('select public.cms_publicar_pagina($1::uuid)',[id]);
+    const eliminar=async id=>db.query('select public.cms_eliminar_pagina($1::uuid)',[id]);
     await guardar(padre,[b,{...b,id:crypto.randomUUID(),titulo:'Bloque oculto privado',visible:false,orden:1}]);
     assert.equal((await db.query('select count(*)::integer n from public.paginas_publicadas where id=$1',[padre.id])).rows[0].n,0);
     await publicar(padre.id);
@@ -44,6 +47,7 @@ test('Migración y RLS: borradores privados, publicación, jerarquía, copia y c
     const hija={id:crypto.randomUUID(),nombre:'Instalación',slug:'instalacion',padre_id:padre.id,sistema:'personalizada',orden:0,en_menu:true};
     await guardar(hija,[]);await publicar(hija.id);
     assert.equal((await db.query('select ruta from public.paginas_publicadas where id=$1',[hija.id])).rows[0].ruta,'/servicios/instalacion');
+    await assert.rejects(()=>eliminar(padre.id),/subpáginas/);
     await guardar({...padre,nombre:'Nuevo nombre en borrador',revision:1},[{...b,titulo:'Borrador privado'}]);
     const publicada=(await db.query('select nombre,bloques from public.paginas_publicadas where id=$1',[padre.id])).rows[0];
     assert.equal(publicada.nombre,'Servicios');assert.equal(publicada.bloques[0].titulo,'Texto publicado');
@@ -54,6 +58,7 @@ test('Migración y RLS: borradores privados, publicación, jerarquía, copia y c
     await assert.rejects(()=>db.query('select * from public.paginas'),/permission denied/);
     await assert.rejects(()=>db.query('select * from public.bloques_pagina'),/permission denied/);
     await assert.rejects(()=>publicar(padre.id),/permission denied/);
+    await assert.rejects(()=>eliminar(padre.id),/permission denied/);
     await rol('authenticated',admin);
     await db.query('select public.cms_ocultar_pagina($1::uuid)',[padre.id]);
     await rol('anon');
@@ -68,6 +73,19 @@ test('Migración y RLS: borradores privados, publicación, jerarquía, copia y c
     assert.equal((await db.query('select * from public.paginas')).rows.length,0);
     await assert.rejects(()=>publicar(padre.id),/Solo administradores/);
     await assert.rejects(()=>guardar({...padre,revision:3},[]),/Solo administradores/);
+    await assert.rejects(()=>eliminar(copia),/Solo administradores/);
+    await rol('authenticated',admin);
+    await assert.rejects(()=>eliminar('00000000-0000-4000-8000-000000000101'),/Página del sistema/);
+    await assert.rejects(()=>db.query("delete from public.paginas where sistema='inicio'"),/Página del sistema/);
+    await db.query("insert into public.menu_sitio(nombre,enlace) values('Servicios viejo','/servicios'),('Servicios actual','/servicios-nuevos#contenido'),('Externo','https://example.com/servicios-nuevos'),('Catálogo visual','/productos')");
+    await assert.rejects(()=>eliminar(padre.id),/subpáginas/);
+    assert.equal((await db.query("select count(*)::integer n from public.menu_sitio where nombre='Servicios actual'")).rows[0].n,1);
+    await eliminar(hija.id);await eliminar(padre.id);await eliminar(copia);
+    await eliminar('00000000-0000-4000-8000-000000000102');
+    assert.equal((await db.query("select count(*)::integer n from public.bloques_pagina where pagina_id in ($1,$2,$3,'00000000-0000-4000-8000-000000000102')",[hija.id,padre.id,copia])).rows[0].n,0);
+    assert.equal((await db.query("select count(*)::integer n from public.paginas_publicadas")).rows[0].n,1);
+    assert.equal((await db.query("select count(*)::integer n from public.menu_sitio where nombre in ('Servicios actual','Catálogo visual')")).rows[0].n,0);
+    assert.equal((await db.query("select count(*)::integer n from public.menu_sitio where nombre='Externo'")).rows[0].n,1);
     await rol('postgres');
     assert.deepEqual((await db.query('select * from public.productos')).rows,antes);
   } finally {await db.close();}
